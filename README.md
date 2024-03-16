@@ -3,6 +3,8 @@
 
 ♨️ Highest Throughput EVM L2 PoC, designed for payments ♨️
 
+Follow [Sentou Tech](https://x.com/sentoutech) for updates on the project. 
+
 
 ## Summary
 
@@ -12,7 +14,7 @@ Parallelizable Contracts only in this L2! And interoperate with ETH and ETH ecos
 - Highest possible throughput for power law application: Transfer of wealth
 - Inherit Decentralization + Security Properties of Ethereum
 - Interoperable with wider Ethereum + Rollup Ecosystems
-- No MEV (No frontruns)
+- No MEV (No frontruns, since the operations are commutative by design)
 
 Basic Idea:
 
@@ -40,13 +42,26 @@ Stablecoins such as USDC emerged as dominant players, yet they face challenges w
 
 ![alt text](image.png)
 
+A popular narrative in Q1 2024, is the notion of parallel-EVMs (e.g. Monad, Sei, NeonEVM), which broadly "solves" all of the aforementioned problems - except they have one problem: Suppose you have infinite number of parallel EVMs that you can parallel-execute the transactions over. Then what is the upper bound on the time complexity of blockchains? Answer: Longest Chain of Interdependent Transactions (e.g. Sequence of uniswap transactions in a given block)
+
+![Bottleneck to EVM parallelization](image-4.png)
 
 ## Implementation
 
 
-Static Annotation of solidity smart contracts + Bloom Filter Mutex control to ensure parallelizability. 
+TLDR: Static Annotation of solidity smart contracts + Bloom Filter Mutex control to ensure parallelizability. 
+
+The project uses [evmone](https://github.com/ethereum/evmone) (C++ EVM, lowest latency EVM in the world) as the EVM execution engine. 
+
+Prior to execution, there is an "annotation" of the contract ABI for the contracts which uses a python script. This selects which functions are parallelizable or serial. For each contract also, there is a bloom filter created alongside state, which tracks the mutex ownership in a given block. 
+
+Then, at runtime, we simulate the mempool with a python script which tests if the given transaction can be state-accessed, by running a lookup on the bloom filter to see if the mutex is currently in lock. If it is in lock, it will reject the transaction, if not, it will update the bloom filter and acquire the mutex, and allocate execution of the transaction in parallel to evmone. 
+
+The entire mutex for each storage slot is released upon completion of the block.
 
 
 ![alt text](image-1.png)
 
 Can read more about the implementation at: [Slides](https://docs.google.com/presentation/d/1QMw9t38TNsDCZesRFK90rzCWjB6m-wrVypBqQu_uOhk/edit?usp=sharing)
+
+Follow ♨️ [Sentou Tech](https://x.com/sentoutech) for updates on the project. 
