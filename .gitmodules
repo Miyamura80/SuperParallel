@@ -1,0 +1,6 @@
+[submodule "deps/evmone"]
+	path = deps/evmone
+	url = git@github.com:ethereum/evmone.git
+[submodule "deps/intx"]
+	path = deps/intx
+	url = git@github.com:chfast/intx.git
