@@ -18,11 +18,11 @@ Parallelizable Contracts only in this L2! And interoperate with ETH and ETH ecos
 
 Basic Idea:
 
-![Parallel-Only EVM Execution](image-3.png)
+![Parallel-Only EVM Execution](media/image-3.png)
 
 Ethereum Ecosystem Interoperability:
 
-![alt text](image-2.png)
+![alt text](media/image-2.png)
 
 
 ## Problem
@@ -40,11 +40,11 @@ Micropayments are the future. Micropayments revolutionize digital content consum
 Stablecoins such as USDC emerged as dominant players, yet they face challenges with high transaction fees that hinder global adoption. Additionally, other "high throughput" blockchain networks encounter issues related to security, decentralization, scalability, and EVM compatibility. Despite these challenges, payments remain a robust and power law application of cryptocurrency with proven product-market fit, exemplified by Circle's approach to an IPO, as reported by [Reuters](https://www.reuters.com/markets/deals/stablecoin-firm-circle-confidentially-files-us-ipo-2024-01-11/).
 
 
-![alt text](image.png)
+![alt text](media/image.png)
 
 A popular narrative in Q1 2024, is the notion of parallel-EVMs (e.g. Monad, Sei, NeonEVM), which broadly "solves" all of the aforementioned problems - except they have one problem: Suppose you have infinite number of parallel EVMs that you can parallel-execute the transactions over. Then what is the upper bound on the time complexity of blockchains? Answer: Longest Chain of Interdependent Transactions (e.g. Sequence of uniswap transactions in a given block)
 
-![Bottleneck to EVM parallelization](image-4.png)
+![Bottleneck to EVM parallelization](media/image-4.png)
 
 ## Implementation
 
@@ -60,7 +60,7 @@ Then, at runtime, we simulate the mempool with a python script which tests if th
 The entire mutex for each storage slot is released upon completion of the block.
 
 
-![alt text](image-1.png)
+![alt text](media/image-1.png)
 
 Can read more about the implementation at: [Slides](https://docs.google.com/presentation/d/1QMw9t38TNsDCZesRFK90rzCWjB6m-wrVypBqQu_uOhk/edit?usp=sharing)
 
