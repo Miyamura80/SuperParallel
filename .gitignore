@@ -1,3 +1,7 @@
 evmone_parallel_evm
 build/**
 compiled_contracts/**
+execution_logs/**
+
+**/*.pyc
+**/__pycache__/
