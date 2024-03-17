@@ -19,15 +19,15 @@ def worker_task(
     args, m, tx_id, mutex_addresses, success_count
 ):
 
-    counter = 0
+    
     # BACKLOG: Fix this naive implementation
     for bf, attr_dim, locks_for_workers in args:
+        counter = 0
         for perm in itertools.permutations(mutex_addresses, attr_dim):
             with locks_for_workers[counter]:
                 index = sum([x*m**i for i, x in enumerate(perm)])
                 bf[index].value = 1
                 counter += 1
-
 
 
 
@@ -84,14 +84,15 @@ def run_superparallel(benchmark=False):
                 state_dep_attrs[attr] = dep_states[attr]
         contracts[contract_addr] = (state_dep_attrs, write_func_deps)
 
+    #########################
+    # DEBUG ZONE
+    #########################
+    # print("Contracts")
+    # pprint.pprint(contracts)
+    # print("Function Selectors")
+    # pprint.pprint(function_selectors)
 
-
-    print("Contracts")
-    pprint.pprint(contracts)
-    print("Function Selectors")
-    pprint.pprint(function_selectors)
-
-    n_addr = len(addresses)
+    n_addr = N_ADDRESSES + 1
 
     bloom_filters = {
         contract_addr: {
@@ -173,11 +174,18 @@ def run_superparallel(benchmark=False):
 
             locks_for_workers = []
             for perm in itertools.permutations(mutex_addresses, attr_dim):
-                index = sum([x*n_addr**i for i, x in enumerate(perm)])
-                locks_for_workers.append(
-                    contract_owned_locks[attr_name][index]
-                )
-
+                try:
+                    index = sum([x*n_addr**i for i, x in enumerate(perm)])
+                    locks_for_workers.append(
+                        contract_owned_locks[attr_name][index]
+                    )
+                except IndexError as e:
+                    error_msg = (
+                        f"Failed to generate lock for worker due to "
+                        f"permutation {perm} on attribute {attr_name} - "
+                        "index out of bounds"
+                    )
+                    raise IndexError(error_msg) from e
             # Add final args to pass to the worker
             args.append(
                 (contract_bf[attr_name], attr_dim, locks_for_workers)
@@ -193,10 +201,10 @@ def run_superparallel(benchmark=False):
 
 
     # Step 2: Execute in Parallel in EVM
-    # start_time = time.time()
-    # execute_mempool_parallel(mempool)
-    # end_time = time.time()
-    # print(f"Execution time: {end_time - start_time} seconds")
+    start_time = time.time()
+    execute_mempool_parallel(mempool)
+    end_time = time.time()
+    print(f"Execution time: {end_time - start_time} seconds")
 
 
 
