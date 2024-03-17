@@ -1,6 +1,7 @@
 from static_analyzer import annotate_contract
 import json
 import random
+import time
 from parallel_evmone import run_evmone
 
 def run_serial(benchmark=False):
@@ -38,12 +39,15 @@ def run_serial(benchmark=False):
         for _ in range(round(len(addresses) * len(contracts) * 0.8))
     ]
 
+    start_time = time.time()
     for i, tx in enumerate(mempool):
         run_evmone(
             tx["to"],
             tx["data"],
             f"{i}",
         )
+    end_time = time.time()
+    print(f"Execution time: {end_time - start_time} seconds")
 
 if __name__ == "__main__":
     run_serial()
