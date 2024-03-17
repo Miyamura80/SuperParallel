@@ -7,6 +7,12 @@ LIBRARIES = -L$(EVMONE_PATH)/build/evmc/lib/loader -L$(EVMONE_PATH)/build/lib
 main:
 	python main.py
 
+parallel:
+	python superparallel.py
+
+serial:
+	python serial.py
+
 setup_evmone:
 	# Step 1: Build the evmone repo
 	# cd ./deps/evmone && cmake -S . -B build -DEVMONE_TESTING=ON && cmake --build build --parallel

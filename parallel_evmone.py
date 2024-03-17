@@ -1,6 +1,7 @@
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
 import json
+import time
 
 EXECUTION_LOG_DIR = "execution_logs"
 PROGRAM_NAME = "evmone_parallel_evm"
@@ -11,7 +12,7 @@ def run_evmone(
     run_hash: str,
     compile_dir: str="compiled_contracts",
 ) -> None:
-
+    time.sleep(2)
     bytecode_file = f"{compile_dir}/{contract_name}.bytecode.json"
     with open(bytecode_file, 'r', encoding='utf-8') as file:
         bytecode_json = file.read()
@@ -34,14 +35,21 @@ def run_evmone(
         print("Error in script execution")
         print(stderr.decode())
 
-# Number of times you want to run the script in parallel
-num_parallel_runs = 5
+def execute_mempool_parallel(mempool):
+    # Number of times you want to run the script in parallel
+    num_parallel_runs = len(mempool)
 
-# Using ThreadPoolExecutor to run the script in parallel
-with ThreadPoolExecutor(max_workers=num_parallel_runs) as executor:
-    futures = [
-        executor.submit(run_evmone, 'X', '', f"0x{i}386480")
-        for i in range(num_parallel_runs)
-    ]
-    for future in futures:
-        future.result()  # Wait for all futures to complete
+    # Using ThreadPoolExecutor to run the script in parallel
+    with ThreadPoolExecutor(max_workers=num_parallel_runs) as executor:
+        futures = [
+            executor.submit(
+                run_evmone,
+                tx["to"],
+                tx["data"],
+                f"{i}")
+            for i, tx in enumerate(mempool)
+        ]
+        for future in futures:
+            future.result()  # Wait for all futures to complete
+
+
