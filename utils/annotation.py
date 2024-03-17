@@ -1,4 +1,5 @@
 from typing import Dict, Tuple
+import re
 
 def find_children(function_names, function_definition):
     children = []
@@ -6,6 +7,16 @@ def find_children(function_names, function_definition):
         if f"{f_name}(" in function_definition:
             children.append(f_name)
     return children
+
+def get_f_state_attrs(attr_names, function_definition):
+    state_attrs = []
+    for attr_name in attr_names:
+        pattern = r'\b' + re.escape(attr_name) + \
+            r'\b|\b' + re.escape(attr_name) + r'\[\]'
+        if re.search(pattern, function_definition):
+            state_attrs.append(attr_name)
+    return state_attrs
+
 
 def annotate_tree_if_leaf(
     f_name,
@@ -17,16 +28,25 @@ def annotate_tree_if_leaf(
     children = function_annotation[f_name]["children"]
     all_children_annotated = True
     min_mutex_dim = float('inf')
+    dep_state_attr = []
     for child in children:
-        if "mutex_dim" not in function_annotation[child] or function_annotation[child]["mutex_dim"] is None:
+        if "mutex_dim" not in function_annotation[child] \
+         or function_annotation[child]["mutex_dim"] is None:
             all_children_annotated = False
             break
         else:
-            min_mutex_dim = min(min_mutex_dim, function_annotation[child]["mutex_dim"])
+            min_mutex_dim = min(
+                min_mutex_dim, 
+                function_annotation[child]["mutex_dim"]
+            )
+            # Take union of the children dep_state_attr and current
+            dep_state_attr = list(set(dep_state_attr) \
+                | set(function_annotation[child]["dep_state_attr"]))
 
-
+    
     if all_children_annotated:
         function_annotation[f_name]["mutex_dim"] = min_mutex_dim
+        function_annotation[f_name]["dep_state_attr"] = dep_state_attr
         return function_annotation, True
     else:
         return function_annotation, False
@@ -51,13 +71,18 @@ def recursive_annotation(function_annotation, attr_dimensions) -> Dict[str, Dict
         #         calculate via min value of state attribute
         if non_recursive:
             min_attr_dim = 3
+            dep_state_attr = []
             for attr_name, attr_dim in attr_dimensions.items():
                 if attr_name in f_def_code:
                     min_attr_dim = min(
                         attr_dim,
                         min_attr_dim,
                     )
+                    dep_state_attr.append(attr_name)
+            print(dep_state_attr)
             function_annotation[f_name]["mutex_dim"] = min_attr_dim
+            function_annotation[f_name]["dep_state_attr"] = dep_state_attr
+
 
     if not recursive_f_names:
         # There are no recursive f_names, we are done

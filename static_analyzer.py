@@ -123,7 +123,6 @@ def annotate_contract(
         if "definition" in function_annotation[f_name]:
             del function_annotation[f_name]["definition"]
 
-
     # Step 4: Generate the configuration JSON file & ABI
 
     compiled_contracts_dir = "compiled_contracts"
@@ -136,8 +135,13 @@ def annotate_contract(
              and f_abi["name"] == f_name \
              and f_abi["stateMutability"] != "view":
 
+                # Provide children + Mutex information
                 f_abi["children"] = f_annot["children"]
                 f_abi["mutex_dim"] = f_annot["mutex_dim"]
+                f_abi["dep_state_attr"] = f_annot["dep_state_attr"]
+
+                # Give the function signature
+                f_abi["f_hash"] = U.get_function_hash(f_abi)
 
 
     # Save files
@@ -154,9 +158,10 @@ def annotate_contract(
     with open(bytecode_file_path, 'w', encoding='utf-8') as bytecode_file:
         json.dump({"bytecode": bytecode}, bytecode_file, indent=4)
 
-    print(f"ABI and bytecode for {contract_identifier} have been saved.")
-
-
+    print(f"ABI and bytecode for {contract_identifier} have been saved to:")
+    print(f"{abi_file_path}")
+    print(f"{bytecode_file_path}")
+    print("---")
 
 if __name__ == "__main__":
     annotate_contract("X", "ERC20Basic")
