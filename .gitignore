@@ -1,2 +1,3 @@
 evmone_parallel_evm
 build/**
+compiled_contracts/**
