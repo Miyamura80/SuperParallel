@@ -22,3 +22,6 @@ setup_evmone:
 		--calldata "" \
 		--outputdir=execution_logs \
 		--fileprefix=test_
+
+clean:
+	find . -name '*.py' -exec sed -i 's/[ \t]*$$//' {} +
