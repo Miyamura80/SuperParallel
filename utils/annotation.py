@@ -3,7 +3,7 @@ from typing import Dict, Tuple
 def find_children(function_names, function_definition):
     children = []
     for f_name in function_names:
-        if f_name in function_definition:
+        if f"{f_name}(" in function_definition:
             children.append(f_name)
     return children
 
