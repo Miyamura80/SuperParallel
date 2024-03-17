@@ -17,7 +17,11 @@
 #include <unistd.h> // For realpath
 
 // Adjusted function to use evmone directly for tracing and include status code in output
-std::string executeEVM(evmc::VM& vm, const evmc::bytes& bytecode, const evmc::bytes& calldata, const std::string& output_dir) {
+std::string executeEVM(evmc::VM& vm, 
+                       const evmc::bytes& bytecode, 
+                       const evmc::bytes& calldata, 
+                       const std::string& output_dir, 
+                       const std::string& file_prefix) {
     evmc_revision rev = EVMC_ISTANBUL; // Use the appropriate EVM revision
     evmc_address sender{};
     evmc_address destination{};
@@ -102,7 +106,10 @@ std::string executeEVM(evmc::VM& vm, const evmc::bytes& bytecode, const evmc::by
             status_code_str = "Unknown Error";
             break;
     }
-    std::string output_path = output_dir.empty() ? "execution_status.json" : (output_dir + "/execution_status.json");
+    std::string execution_status_filename = file_prefix + "execution_status.json";
+    std::string output_path = output_dir.empty() ? 
+                              execution_status_filename : 
+                              output_dir + "/" + execution_status_filename;
     std::ofstream status_out(output_path);
     status_out << "{\"status_code\": \"" << status_code_str << "\"}";
     status_out.close();
@@ -122,19 +129,23 @@ void generateEVMTraceFile(
     const evmc::bytes& bytecode,
     const evmc::bytes& calldata,
     const std::string& trace_out_file_name,
-    const std::string& output_dir)
+    const std::string& output_dir,
+    const std::string& file_prefix)
 {   
     auto* vm_ptr = evmc_create_evmone();
     evmc::VM vm{vm_ptr};
 
     // Set up tracing
-    std::string trace_output_path = output_dir.empty() ? trace_out_file_name : (output_dir + "/" + trace_out_file_name);
+    std::string trace_output_filename = file_prefix + trace_out_file_name;
+    std::string trace_output_path = output_dir.empty() ? 
+                                    trace_output_filename : 
+                                    output_dir + "/" + trace_output_filename;
     std::ofstream trace_out(trace_output_path);
     auto tracer = evmone::create_instruction_tracer(trace_out);
     static_cast<evmone::VM*>(vm_ptr)->add_tracer(std::move(tracer));
 
     try {
-        auto result = executeEVM(vm, bytecode, calldata, output_dir);
+        auto result = executeEVM(vm, bytecode, calldata, output_dir, file_prefix);
         std::cout << "Execution result: " << result << std::endl;
         char full_path[PATH_MAX];
         realpath(trace_output_path.c_str(), full_path);
@@ -152,18 +163,20 @@ int main(int argc, char* argv[]) {
     std::string calldata_hex;
     std::string trace_out_file_name;
     std::string output_dir; // New variable for output directory
+    std::string file_prefix; // New variable for file prefix
 
     struct option long_options[] = {
         {"bytecode", required_argument, NULL, 'b'},
         {"calldata", required_argument, NULL, 'c'},
         {"tracefilename", required_argument, NULL, 't'},
         {"outputdir", optional_argument, NULL, 'o'}, // New option for output directory
+        {"fileprefix", optional_argument, NULL, 'f'}, // New option for file prefix
         {NULL, 0, NULL, 0}
     };
 
     int option_index = 0;
     int option;
-    while ((option = getopt_long(argc, argv, "b:c:t:o::", long_options, &option_index)) != -1) {
+    while ((option = getopt_long(argc, argv, "b:c:t:o::f::", long_options, &option_index)) != -1) {
         switch (option) {
             case 'b':
                 bytecode_hex = optarg;
@@ -177,14 +190,25 @@ int main(int argc, char* argv[]) {
             case 'o':
                 output_dir = optarg ? optarg : ""; // If optarg is NULL, set output_dir to an empty string
                 break;
+            case 'f':
+                file_prefix = optarg ? optarg : ""; // If optarg is NULL, set file_prefix to an empty string
+                break;
             default:
-                std::cerr << "Usage: " << argv[0] << " --bytecode <bytecode_hex> --calldata <calldata_hex> --tracefilename <trace_out_file_name> [--outputdir <output_directory>]\n";
+                std::cerr << "Usage: " << argv[0] 
+                          << " --bytecode <bytecode_hex>"
+                          << " --calldata <calldata_hex>"
+                          << " --tracefilename <trace_out_file_name>"
+                          << " [--outputdir <output_directory>]"
+                          << " [--fileprefix <file_prefix>]\n";
                 return 1;
         }
     }
 
     if (bytecode_hex.empty() || trace_out_file_name.empty()) {
-        std::cerr << "Missing required arguments. Usage: " << argv[0] << " --bytecode <bytecode_hex> --calldata <calldata_hex> --tracefilename <trace_out_file_name>\n";
+        std::cerr << "Missing required arguments. Usage: " << argv[0] 
+                  << " --bytecode <bytecode_hex> --calldata <calldata_hex> "
+                  << "--tracefilename <trace_out_file_name> "
+                  << "[--outputdir <output_directory>] [--fileprefix <file_prefix>]\n";
         return 1;
     }
 
@@ -208,12 +232,14 @@ int main(int argc, char* argv[]) {
     calldata = hex_to_bytes(calldata_hex);
 
     std::cout << "Output directory: " << output_dir << std::endl;
+    std::cout << "File prefix: " << file_prefix << std::endl;
 
     // Pass the converted values to generateEVMTraceFile
     generateEVMTraceFile(
         bytecode, 
         calldata, 
         trace_out_file_name, 
-        output_dir
+        output_dir,
+        file_prefix
     );
 }
