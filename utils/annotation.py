@@ -36,13 +36,13 @@ def annotate_tree_if_leaf(
             break
         else:
             min_mutex_dim = min(
-                min_mutex_dim, 
+                min_mutex_dim,
                 function_annotation[child]["mutex_dim"]
             )
             # Union of the children dep_state_attr and current based on keys
             for key in function_annotation[child]["dep_state_attr"].keys():
                 dep_state_attr[key] = function_annotation[child]["dep_state_attr"][key]
-    
+
     if all_children_annotated:
         function_annotation[f_name]["mutex_dim"] = min_mutex_dim
         function_annotation[f_name]["dep_state_attr"] = dep_state_attr

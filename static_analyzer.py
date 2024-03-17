@@ -12,8 +12,8 @@ def annotate_contract(
     path: str = "contracts/reduced_erc20.sol",
 ) -> dict:
     """
-    Analyzes a Solidity contract specified by its path, extracts relevant information, 
-    and generates a configuration JSON file. This file is saved with the name 
+    Analyzes a Solidity contract specified by its path, extracts relevant information,
+    and generates a configuration JSON file. This file is saved with the name
     compiled_contracts/{contract_identifier}_config.json, containing the analysis results.
 
     Args:
@@ -25,11 +25,11 @@ def annotate_contract(
         code = file.read()
 
     # Step 1: Compile the code. Reject if bytecode has DELEGATECALL
-    
+
     # Compile the Solidity contract using solc
     compile_command = f"solc --optimize --combined-json abi,bin {path}"
     process = subprocess.Popen(
-        compile_command, shell=True, 
+        compile_command, shell=True,
         stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )
     stdout, stderr = process.communicate()
@@ -165,4 +165,4 @@ def annotate_contract(
 
 if __name__ == "__main__":
     annotate_contract("X", "ERC20Basic")
-    
+

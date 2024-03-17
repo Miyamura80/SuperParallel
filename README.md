@@ -6,6 +6,14 @@
 Follow [Sentou Tech](https://x.com/sentoutech) for updates on the project. 
 
 
+## Table of Contents
+
+- [Summary](#summary)
+- [Problem](#problem)
+- [Implementation](#implementation)
+- [Limitations](#limitations)
+
+
 ## Summary
 
 Introducing: **SuperParallel!** highest throughput EVM L2 designed for payments.
@@ -23,6 +31,8 @@ Basic Idea:
 Ethereum Ecosystem Interoperability:
 
 ![alt text](media/image-2.png)
+
+
 
 
 ## Problem
@@ -65,3 +75,19 @@ The entire mutex for each storage slot is released upon completion of the block.
 Can read more about the implementation at: [Slides](https://docs.google.com/presentation/d/1QMw9t38TNsDCZesRFK90rzCWjB6m-wrVypBqQu_uOhk/edit?usp=sharing)
 
 Follow ♨️ [Sentou Tech](https://x.com/sentoutech) for updates on the project. 
+
+
+## Limitations
+
+- No complex contract-contract call cases implemented
+- Database structure is not implemented
+- Does not support parallelization from bytecode directly
+- More targeted bloom filter mutex lock operation in `superparallel.py` in step 1. (+ Advanced annotation to see which states are being locked, in which direction of the operation)
+
+
+## ETHGlobal London Prizes
+
+### Circle
+
+
+### WorldCoin
