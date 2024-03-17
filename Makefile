@@ -12,7 +12,13 @@ setup_evmone:
 	# cd ./deps/evmone && cmake -S . -B build -DEVMONE_TESTING=ON && cmake --build build --parallel
 
 	# Step 2: Build the evmone evm trace generation
-	g++ -std=c++20 -o build/$(PROGRAM_NAME) evm_tracer.cpp $(INCLUDES) $(LIBRARIES) -levmc-loader -levmone -Wl,-rpath,$(realpath $(EVMONE_PATH)/build/lib)
+	g++ -std=c++20 -o build/$(PROGRAM_NAME) evm_tracer.cpp $(INCLUDES) $(LIBRARIES) \
+	-levmc-loader -levmone -Wl,-rpath,$(realpath $(EVMONE_PATH)/build/lib)
 
 	# Step 3: Sanity-Check by Testing. Status Code should be success
-	./build/$(PROGRAM_NAME) --bytecode 604260005260206000F3 --tracefilename trace.json --calldata "" --outputdir=execution_logs --fileprefix=test_
+	./build/$(PROGRAM_NAME) \
+		--bytecode 604260005260206000F3 \
+		--tracefilename trace.json \
+		--calldata "" \
+		--outputdir=execution_logs \
+		--fileprefix=test_
