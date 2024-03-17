@@ -16,30 +16,23 @@ N_ADDRESSES = 10
 
 
 def worker_task(
-    args, m, tx_id, mutex_addresses, success_count
-):
+    args, m, tx_id, mutex_addresses, success_count, results_dict) -> None:
 
-    
-    # BACKLOG: Fix this naive implementation
+    result = True
     for bf, attr_dim, locks_for_workers in args:
         counter = 0
         for perm in itertools.permutations(mutex_addresses, attr_dim):
             with locks_for_workers[counter]:
                 index = sum([x*m**i for i, x in enumerate(perm)])
+                if bf[index].value == 1:
+                    result = False
+                    break
                 bf[index].value = 1
                 counter += 1
-
-
-
-
-    # # Handle case where mutex is locked
-    # if any(bf[i*m + j] for bf, attr_dim in args):
-    #     print(f"Boolean at [{i},{j}] is Already in use")
-    #     return False
-    # else:
-    #     print(f"Boolean at [{i},{j}] is Free")
-    #     success_count.value += 1
-
+                success_count.value += 1
+        if not result:
+            break
+    results_dict[tx_id] = result
 
 
 
@@ -152,12 +145,10 @@ def run_superparallel(benchmark=False):
 
     # Step 1: Run mempool through bloom filters
     workers = []
-    # Create a worker for each transaction in the mempool
-    # Guaranteed to work due to parallelization
-    # Some workers will be rejected due to mutex, but thats ok
+    manager = Manager()
+    results_dict = manager.dict()
 
     for tx_id, tx in enumerate(mempool):
-        # Worker i processes mempool[i]
         contract_addr = tx["to"]
         f_name = tx["f_name"]
         # TODO: Fix so it is a bit more nuanced than this. Need to modify annotate.py
@@ -191,26 +182,23 @@ def run_superparallel(benchmark=False):
                 (contract_bf[attr_name], attr_dim, locks_for_workers)
             )
 
-        worker_args = (args, n_addr, tx_id, mutex_addresses, success_count)
+        worker_args = (args, n_addr, tx_id, mutex_addresses, success_count, results_dict)
         worker = Process(target=worker_task, args=worker_args)
         workers.append(worker)
         worker.start()
 
-    mempool = filter_parallelizable(mempool, bloom_filters)
+    # Wait for all workers to finish
+    for worker in workers:
+        worker.join()
 
-
+    # Eject any transactions that got knocked off by the bloom filters
+    mempool = [tx for tx_id, tx in enumerate(mempool) if results_dict[tx_id]]
 
     # Step 2: Execute in Parallel in EVM
     start_time = time.time()
     execute_mempool_parallel(mempool)
     end_time = time.time()
     print(f"Execution time: {end_time - start_time} seconds")
-
-
-
-
-
-
 
 if __name__ == "__main__":
     run_superparallel()
