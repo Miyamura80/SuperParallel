@@ -4,3 +4,6 @@
 [submodule "deps/intx"]
 	path = deps/intx
 	url = git@github.com:chfast/intx.git
+[submodule "deps/ens"]
+	path = deps/ens
+	url = git@github.com:ensdomains/ens-contracts.git
