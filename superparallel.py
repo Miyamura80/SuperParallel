@@ -8,31 +8,37 @@ from multiprocessing import Value, Array, Process, Lock, Manager
 import ctypes
 from utils.filter import filter_parallelizable
 from parallel_evmone import execute_mempool_parallel, run_evmone
-
+import itertools
 import time
 
 BLOCK_SIZE = 10
+N_ADDRESSES = 10
 
 
-def worker_task(args, m, mutex_addresses, success_count, locks):
+def worker_task(
+    args, m, tx_id, mutex_addresses, success_count
+):
 
-    # Assumption: Mutex BF goes up to 2D
-    i, *rest = mutex_addresses + [None] * (3 - len(mutex_addresses))
-    j = rest[0] if rest else 0
-    k = rest[1] if rest else 0
+    counter = 0
+    # BACKLOG: Fix this naive implementation
+    for bf, attr_dim, locks_for_workers in args:
+        for perm in itertools.permutations(mutex_addresses, attr_dim):
+            with locks_for_workers[counter]:
+                index = sum([x*m**i for i, x in enumerate(perm)])
+                bf[index].value = 1
+                counter += 1
 
-    # TODO: Fix this naive implementation
-    for bf, attr_dim in args:
-        if attr_dim==1:
-            locks[i] = 1
 
-    # Handle case where mutex is locked
-    if any(bf[i*m + j] for bf, attr_dim in args):
-        print(f"Boolean at [{i},{j}] is Already in use")
-        return False
-    else:
-        print(f"Boolean at [{i},{j}] is Free")
-        success_count.value += 1
+
+
+
+    # # Handle case where mutex is locked
+    # if any(bf[i*m + j] for bf, attr_dim in args):
+    #     print(f"Boolean at [{i},{j}] is Already in use")
+    #     return False
+    # else:
+    #     print(f"Boolean at [{i},{j}] is Free")
+    #     success_count.value += 1
 
 
 
@@ -41,7 +47,8 @@ def worker_task(args, m, mutex_addresses, success_count, locks):
 def run_superparallel(benchmark=False):
 
 
-    addresses = list(range(10))
+
+    addresses = list(range(1,N_ADDRESSES+1))
 
     contracts = {
         "X": {},
@@ -88,22 +95,29 @@ def run_superparallel(benchmark=False):
 
     bloom_filters = {
         contract_addr: {
-            attr_name: Array(
-                    ctypes.c_bool,
-                    n_addr**attr_dim
-                )
+            attr_name: [
+                    Value(ctypes.c_bool, False)
+                    for _ in range(n_addr**attr_dim)
+                ]
+            for attr_name, attr_dim in state_dep_attrs.items()
+        }
+        for contract_addr, (state_dep_attrs, write_func_deps) in contracts.items()
+    }
+
+    storage_locks = {
+        contract_addr: {
+            attr_name: [
+                Lock() for _ in range(n_addr**attr_dim)
+            ]
             for attr_name, attr_dim in state_dep_attrs.items()
         }
         for contract_addr, (state_dep_attrs, write_func_deps) in contracts.items()
     }
 
 
-    pprint.pprint(bloom_filters)
-
-    result_flag = Value(ctypes.c_bool, False)
     success_count = Value('i', 0)  # 'i' is the type code for integers
 
-    # Experiment
+    # Demo Purposes
     mempool = [
         {
             "to": random.choice(list(contracts.keys())),
@@ -136,68 +150,53 @@ def run_superparallel(benchmark=False):
 
 
     # Step 1: Run mempool through bloom filters
-    manager = Manager()
-
-    # TODO Fix
-    # num_locks = len(contracts)
-    # locks = manager.list([Lock() for _ in range(num_locks)])
-    # workers = []
+    workers = []
     # Create a worker for each transaction in the mempool
     # Guaranteed to work due to parallelization
     # Some workers will be rejected due to mutex, but thats ok
-    n_workers = len(mempool)
 
-    for i in range(n_workers):
+    for tx_id, tx in enumerate(mempool):
         # Worker i processes mempool[i]
-        tx = mempool[i]
         contract_addr = tx["to"]
         f_name = tx["f_name"]
-        contract_bf = bloom_filters[contract_addr]
+        # TODO: Fix so it is a bit more nuanced than this. Need to modify annotate.py
+        mutex_addresses = [tx["from"]] + tx["involved_addresses"]
 
-        min_dim = float('inf')
+        contract_bf = bloom_filters[contract_addr]
+        contract_owned_locks = storage_locks[contract_addr]
+
 
         # e.g. affected_attrs_dict =  {'_allowances': 2}
         affected_attrs_dict = contracts[contract_addr][1][f_name]
         args = []
         for attr_name, attr_dim in affected_attrs_dict.items():
+
+            locks_for_workers = []
+            for perm in itertools.permutations(mutex_addresses, attr_dim):
+                index = sum([x*n_addr**i for i, x in enumerate(perm)])
+                locks_for_workers.append(
+                    contract_owned_locks[attr_name][index]
+                )
+
+            # Add final args to pass to the worker
             args.append(
-                (contract_bf[attr_name], attr_dim)
+                (contract_bf[attr_name], attr_dim, locks_for_workers)
             )
-            min_dim = min(min_dim, attr_dim)
 
-        # TODO: Fix so it is a bit more nuanced than this. Need to modify annotate.py
-        mutex_addresses = [tx["from"]] + tx["involved_addresses"]
+        worker_args = (args, n_addr, tx_id, mutex_addresses, success_count)
+        worker = Process(target=worker_task, args=worker_args)
+        workers.append(worker)
+        worker.start()
 
-        # worker_args = (args, n_addr, mutex_addresses, success_count, locks)
-        # worker = Process(target=worker_task, args=worker_args)
-        # workers.append(worker)
-        # worker.start()
-    
     mempool = filter_parallelizable(mempool, bloom_filters)
 
 
 
     # Step 2: Execute in Parallel in EVM
-    start_time = time.time()
-    execute_mempool_parallel(mempool)
-    end_time = time.time()
-    print(f"Execution time: {end_time - start_time} seconds")
-
-
-    # TODO: Hook up to evm_tracer
-
-
-    # Step 3: Run Sequencer on Return
-    block_sequence = []
-
-    # Step 4: Make State Update
-    ##########################################
-    #  DATABASE STATE UPDATES GO HERE
-    #  Best to use concurrent data structures
-    ##########################################
-
-    # Step 5: Release all mutex
-
+    # start_time = time.time()
+    # execute_mempool_parallel(mempool)
+    # end_time = time.time()
+    # print(f"Execution time: {end_time - start_time} seconds")
 
 
 
