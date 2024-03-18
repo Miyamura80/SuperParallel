@@ -80,15 +80,9 @@ Follow ♨️ [Sentou Tech](https://x.com/sentoutech) for updates on the project
 ## Limitations
 
 - No complex contract-contract call cases implemented
-- Database structure is not implemented
-- Does not support parallelization from bytecode directly
+- Concurrent Database structure to remove state bottleneck
+- All the L2 infra required
+- Does not support parallelization from bytecode directly (Solvable, but time-consuming)
 - More targeted bloom filter mutex lock operation in `superparallel.py` in step 1. (+ Advanced annotation to see which states are being locked, in which direction of the operation)
+- Handling collisions with bloom filters at scale 
 
-
-## ETHGlobal London Prizes
-
-### Circle
-
-
-
-### WorldCoin
