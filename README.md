@@ -3,7 +3,7 @@
 
 ♨️ Highest Throughput EVM L2 PoC, designed for payments ♨️
 
-Follow [Sentou Tech](https://x.com/sentoutech) for updates on the project. 
+Join [Sentou Tech](https://t.me/sentoutech) for updates on the project. 
 
 
 ## Table of Contents
@@ -74,7 +74,7 @@ The entire mutex for each storage slot is released upon completion of the block.
 
 Can read more about the implementation at: [Slides](https://docs.google.com/presentation/d/1QMw9t38TNsDCZesRFK90rzCWjB6m-wrVypBqQu_uOhk/edit?usp=sharing)
 
-Follow ♨️ [Sentou Tech](https://x.com/sentoutech) for updates on the project. 
+Join ♨️ [Sentou Tech](https://t.me/sentoutech) for updates on the project. 
 
 
 ## Limitations
